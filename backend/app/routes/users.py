@@ -7,62 +7,60 @@ Endpoints:
 """
 
 import logging
-import json
-from flask import Blueprint, jsonify, request
+from typing import Optional
+from fastapi import APIRouter, Header, HTTPException, status
 
 from app.services import splitwise_service, expense_service
+from app.routes.expenses import extract_access_token
 
 logger = logging.getLogger(__name__)
 
-users_bp = Blueprint('users', __name__)
+users_router = APIRouter()
 
 
-def _extract_access_token_from_header():
-    """Extract and parse the access token from the Authorization header."""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
-        return None
-
-    token_str = auth_header.split(' ', 1)[1] if ' ' in auth_header else auth_header
-    try:
-        return json.loads(token_str)
-    except json.JSONDecodeError:
-        return None
-
-
-@users_bp.route('/user_info', methods=['GET'])
-def get_user_info():
+@users_router.get('/user_info')
+def get_user_info(authorization: Optional[str] = Header(None)):
     """Fetch current user's profile from Splitwise."""
-    access_token = _extract_access_token_from_header()
-    if not access_token:
-        return jsonify({'error': 'No access token provided'}), 401
+    token = extract_access_token(authorization)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No access token provided"
+        )
 
     try:
-        user_info = splitwise_service.fetch_user_info(access_token)
-        return jsonify(user_info)
-    except json.JSONDecodeError:
-        return jsonify({'error': 'Invalid access token format'}), 400
+        user_info = splitwise_service.fetch_user_info(token)
+        return user_info
     except Exception as e:
         logger.error("Error getting user info: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
-@users_bp.route('/user_stats', methods=['GET'])
-def get_user_stats():
+@users_router.get('/user_stats')
+def get_user_stats(authorization: Optional[str] = Header(None)):
     """
     Get aggregate statistics for the authenticated user.
 
     Returns total expenses count, total amount, groups count,
     friends count, and top spending category.
     """
-    access_token = _extract_access_token_from_header()
-    if not access_token:
-        return jsonify({'error': 'No access token provided'}), 401
+    token = extract_access_token(authorization)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No access token provided"
+        )
 
     try:
-        user_info = splitwise_service.fetch_user_info(access_token)
+        user_info = splitwise_service.fetch_user_info(token)
         stats = expense_service.get_user_stats(user_info['id'])
-        return jsonify(stats)
+        return stats
     except Exception as e:
         logger.error("Error getting user stats: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

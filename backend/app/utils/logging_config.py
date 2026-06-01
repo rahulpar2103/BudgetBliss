@@ -37,5 +37,6 @@ def setup_logging(log_level='INFO'):
         root_logger.addHandler(console_handler)
 
     # Suppress noisy third-party loggers
-    logging.getLogger('werkzeug').setLevel(logging.WARNING)
+    logging.getLogger('uvicorn.error').setLevel(logging.WARNING)
+    logging.getLogger('uvicorn.access').setLevel(logging.WARNING)
     logging.getLogger('urllib3').setLevel(logging.WARNING)

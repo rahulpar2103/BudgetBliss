@@ -10,112 +10,143 @@ Endpoints:
 
 import logging
 import json
-from flask import Blueprint, jsonify, request
+from typing import Optional
+from fastapi import APIRouter, Header, HTTPException, status, Depends
 
 from app.services import splitwise_service, expense_service
 from app.services.ml_service import process_expenses as ml_process_expenses
+from app.schemas import FetchDataPayload, ProcessExpensesPayload, AddExpensePayload
 
 logger = logging.getLogger(__name__)
 
-expenses_bp = Blueprint('expenses', __name__)
+expenses_router = APIRouter()
 
 
-def _extract_access_token_from_header():
+def extract_access_token(authorization: Optional[str]) -> Optional[dict]:
     """Extract and parse the access token from the Authorization header."""
-    auth_header = request.headers.get('Authorization')
-    if not auth_header:
+    if not authorization:
         return None
 
-    token_str = auth_header.split(' ', 1)[1] if ' ' in auth_header else auth_header
     try:
+        # Standard Bearer token handling
+        if authorization.startswith('Bearer '):
+            token_str = authorization[7:]
+        else:
+            token_str = authorization
         return json.loads(token_str)
-    except json.JSONDecodeError:
+    except Exception:
         return None
 
 
-@expenses_bp.route('/fetch_data', methods=['POST'])
-def fetch_data():
+@expenses_router.post('/fetch_data')
+def fetch_data(payload: FetchDataPayload):
     """Sync user data (friends, groups, expenses) from Splitwise."""
     try:
-        access_token = request.json.get('access_token')
-        if not access_token:
-            return jsonify({'error': 'No access token provided'}), 400
-
-        summary = splitwise_service.fetch_user_data(access_token)
-        return jsonify({
+        summary = splitwise_service.fetch_user_data(payload.access_token)
+        return {
             'message': 'Data fetched successfully',
             'summary': summary
-        })
+        }
     except Exception as e:
         logger.error("Error fetching data: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
-@expenses_bp.route('/process_expenses', methods=['POST'])
-def process_expenses_route():
+@expenses_router.post('/process_expenses')
+def process_expenses_route(payload: ProcessExpensesPayload):
     """Run ML categorization pipeline on user's expenses."""
     try:
-        access_token = request.json.get('access_token')
-        if not access_token:
-            return jsonify({'error': 'No access token provided'}), 400
-
         # Get user ID
-        user_info = splitwise_service.fetch_user_info(access_token)
+        user_info = splitwise_service.fetch_user_info(payload.access_token)
         user_id = user_info['id']
 
-        from flask import current_app
-        result = ml_process_expenses(user_id, app_config=current_app.config)
-        return jsonify({
+        result = ml_process_expenses(user_id)
+        return {
             'message': 'Expenses processed successfully',
             'result': result
-        })
+        }
     except Exception as e:
         logger.error("Error processing expenses: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
-@expenses_bp.route('/get_results', methods=['GET'])
-def get_results():
+@expenses_router.get('/get_results')
+def get_results(
+    user_id: Optional[str] = None,
+    authorization: Optional[str] = Header(None)
+):
     """Retrieve categorized expense predictions and summaries."""
     try:
-        user_id = request.args.get('user_id')
-        if not user_id:
-            return jsonify({'error': 'No user ID provided'}), 400
+        resolved_user_id = user_id
 
-        results = expense_service.get_user_results(user_id)
-        return jsonify({
+        # Fallback to authorization header if query param is not provided
+        if not resolved_user_id:
+            token = extract_access_token(authorization)
+            if token:
+                try:
+                    user_info = splitwise_service.fetch_user_info(token)
+                    resolved_user_id = user_info['id']
+                except Exception:
+                    pass
+
+        if not resolved_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No user ID provided"
+            )
+
+        results = expense_service.get_user_results(resolved_user_id)
+        return {
             'predictions': json.dumps(results['predictions'], default=str),
             'expense_sums': json.dumps(results['expense_sums'], default=str)
-        })
+        }
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error("Error getting results: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )
 
 
-@expenses_bp.route('/add_expense', methods=['POST'])
-def add_expense():
+@expenses_router.post('/add_expense')
+def add_expense(
+    payload: AddExpensePayload,
+    authorization: Optional[str] = Header(None)
+):
     """Manually add a new expense entry."""
-    access_token = _extract_access_token_from_header()
-    if not access_token:
-        return jsonify({'error': 'No access token provided'}), 401
+    token = extract_access_token(authorization)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="No access token provided"
+        )
 
     try:
-        user_info = splitwise_service.fetch_user_info(access_token)
+        user_info = splitwise_service.fetch_user_info(token)
         user_id = user_info['id']
 
-        expense_data = request.json
         expense_service.add_expense(
             user_id=user_id,
-            description=expense_data['description'],
-            amount=expense_data['amount'],
-            category=expense_data['category']
+            description=payload.description,
+            amount=payload.amount,
+            category=payload.category
         )
 
         # Re-process expenses to update predictions
-        from flask import current_app
-        ml_process_expenses(user_id, app_config=current_app.config)
+        ml_process_expenses(user_id)
 
-        return jsonify({'message': 'Expense added successfully'}), 200
+        return {'message': 'Expense added successfully'}
     except Exception as e:
         logger.error("Error adding expense: %s", str(e), exc_info=True)
-        return jsonify({'error': str(e)}), 500
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=str(e)
+        )

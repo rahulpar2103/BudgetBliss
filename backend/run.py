@@ -1,14 +1,19 @@
 """
-BudgetBliss Backend — Application Entry Point.
+BudgetBliss Backend — FastAPI Application Entry Point.
 
 Usage:
-    python run.py                  # Development mode (default)
-    FLASK_ENV=production python run.py  # Production mode
+    python run.py                  # Runs uvicorn dev server on port 5000
+    FASTAPI_ENV=production python run.py  # Runs production mode
 """
 
-from app import create_app
-
-app = create_app()
+import uvicorn
+from app.config import settings
 
 if __name__ == '__main__':
-    app.run(debug=app.config.get('DEBUG', True))
+    # Run Uvicorn server referencing the app instance in backend/app/__init__.py
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=5000,
+        reload=getattr(settings, "DEBUG", True)
+    )

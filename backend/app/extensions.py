@@ -15,17 +15,19 @@ _mongo_client = None
 _db = None
 
 
-def init_db(app):
+def init_db(config=None):
     """
-    Initialize the MongoDB connection using app configuration.
+    Initialize the MongoDB connection using configuration.
 
-    Called once during app factory creation. Stores the client and
-    database reference at module level for access via get_db().
+    Stores the client and database reference at module level for access via get_db().
     """
     global _mongo_client, _db
 
-    mongo_uri = app.config.get('MONGODB_URI', 'mongodb://localhost:27017')
-    db_name = app.config.get('MONGODB_DB_NAME', 'budget_bliss')
+    from app.config import settings
+    active_config = config or settings
+
+    mongo_uri = getattr(active_config, 'MONGODB_URI', 'mongodb://localhost:27017')
+    db_name = getattr(active_config, 'MONGODB_DB_NAME', 'budget_bliss')
 
     _mongo_client = MongoClient(mongo_uri)
     _db = _mongo_client[db_name]
@@ -35,16 +37,12 @@ def init_db(app):
 
 def get_db():
     """
-    Get the MongoDB database instance.
+    Get the MongoDB database instance. Auto-connects if not yet initialized.
 
     Returns:
         pymongo.database.Database: The configured database.
-
-    Raises:
-        RuntimeError: If called before init_db().
     """
+    global _db
     if _db is None:
-        raise RuntimeError(
-            "Database not initialized. Call init_db(app) first."
-        )
+        init_db()
     return _db

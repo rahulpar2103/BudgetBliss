@@ -1,88 +1,73 @@
 """
-BudgetBliss Flask Application Factory.
+BudgetBliss FastAPI Application Setup.
 
-Implements the application factory pattern for clean initialization,
-Blueprint registration, and environment-specific configuration.
+Implements application initialization, router registration,
+CORS middleware configuration, and logging setup.
 """
 
 import logging
-from flask import Flask, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
-from app.config import config_by_name
+from app.config import settings
 from app.extensions import init_db
 from app.utils.logging_config import setup_logging
 
 
-def create_app(config_name=None):
+def create_app():
     """
-    Create and configure the Flask application.
-
-    Args:
-        config_name: Configuration environment ('development', 'production', 'testing').
-                     Defaults to FLASK_ENV environment variable or 'development'.
+    Create and configure the FastAPI application.
 
     Returns:
-        Configured Flask application instance.
+        FastAPI application instance.
     """
-    import os
-    if config_name is None:
-        config_name = os.getenv('FLASK_ENV', 'development')
-
-    app = Flask(__name__)
-    app.config.from_object(config_by_name[config_name])
-
     # Initialize logging
-    setup_logging(app.config.get('LOG_LEVEL', 'INFO'))
+    setup_logging(settings.LOG_LEVEL)
 
-    # Initialize extensions
-    CORS(app)
-    init_db(app)
+    # Initialize database connection
+    init_db(settings)
 
-    # Register blueprints
-    _register_blueprints(app)
+    # Create FastAPI app
+    app = FastAPI(
+        title="BudgetBliss API",
+        description="FastAPI Backend for BudgetBliss expense tracker",
+        version="1.0.0"
+    )
 
-    # Register error handlers
-    _register_error_handlers(app)
+    # Configure CORS middleware (matching Flask CORS defaults)
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # Register API routers
+    _register_routers(app)
 
     logger = logging.getLogger(__name__)
     logger.info(
-        "BudgetBliss app created with '%s' configuration", config_name
+        "BudgetBliss FastAPI app created with settings env_name='%s'",
+        settings.__class__.__name__
     )
 
     return app
 
 
-def _register_blueprints(app):
-    """Register all route Blueprints with the application."""
-    from app.routes.auth import auth_bp
-    from app.routes.expenses import expenses_bp
-    from app.routes.analytics import analytics_bp
-    from app.routes.users import users_bp
+def _register_routers(app: FastAPI):
+    """Register all APIRouters with the application."""
+    from app.routes.auth import auth_router
+    from app.routes.expenses import expenses_router
+    from app.routes.analytics import analytics_router
+    from app.routes.users import users_router
 
-    app.register_blueprint(auth_bp, url_prefix='/api')
-    app.register_blueprint(expenses_bp, url_prefix='/api')
-    app.register_blueprint(analytics_bp, url_prefix='/api')
-    app.register_blueprint(users_bp, url_prefix='/api')
+    # Mount routers under /api prefix to match existing frontend endpoint expectations
+    app.include_router(auth_router, prefix="/api")
+    app.include_router(expenses_router, prefix="/api")
+    app.include_router(analytics_router, prefix="/api")
+    app.include_router(users_router, prefix="/api")
 
 
-def _register_error_handlers(app):
-    """Register global error handlers for consistent API responses."""
-
-    @app.errorhandler(400)
-    def bad_request(error):
-        return jsonify({'error': 'Bad request', 'message': str(error)}), 400
-
-    @app.errorhandler(401)
-    def unauthorized(error):
-        return jsonify({'error': 'Unauthorized', 'message': 'Authentication required'}), 401
-
-    @app.errorhandler(404)
-    def not_found(error):
-        return jsonify({'error': 'Not found', 'message': 'Resource not found'}), 404
-
-    @app.errorhandler(500)
-    def internal_error(error):
-        logger = logging.getLogger(__name__)
-        logger.error("Internal server error: %s", str(error), exc_info=True)
-        return jsonify({'error': 'Internal server error', 'message': 'An unexpected error occurred'}), 500
+# Instantiate the app for ASGI server (e.g. Uvicorn) import
+app = create_app()

@@ -6,19 +6,19 @@ and user operations. Extracted from the original main.py.
 """
 
 import logging
-from flask import current_app
 from splitwise import Splitwise
 
+from app.config import settings
 from app.extensions import get_db
 
 logger = logging.getLogger(__name__)
 
 
 def get_splitwise_instance():
-    """Create a Splitwise SDK instance using app configuration."""
+    """Create a Splitwise SDK instance using global settings configuration."""
     return Splitwise(
-        current_app.config['SPLITWISE_CONSUMER_KEY'],
-        current_app.config['SPLITWISE_CONSUMER_SECRET']
+        settings.SPLITWISE_CONSUMER_KEY,
+        settings.SPLITWISE_CONSUMER_SECRET
     )
 
 

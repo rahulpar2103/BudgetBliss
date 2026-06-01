@@ -1,7 +1,7 @@
 # BudgetBliss 💰
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?logo=python&logoColor=white)](https://python.org)
-[![Flask](https://img.shields.io/badge/Flask-3.0-000000?logo=flask)](https://flask.palletsprojects.com)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://reactjs.org)
 [![scikit-learn](https://img.shields.io/badge/scikit--learn-1.5-F7931E?logo=scikit-learn&logoColor=white)](https://scikit-learn.org)
 [![MongoDB](https://img.shields.io/badge/MongoDB-4.9-47A248?logo=mongodb&logoColor=white)](https://mongodb.com)
@@ -59,9 +59,9 @@ The expense categorization model uses a **TF-IDF vectorizer** paired with a **Ra
 └──────────────────────┬──────────────────────────────────┘
                        │ HTTP / REST API
 ┌──────────────────────┴──────────────────────────────────┐
-│                   Flask Backend                          │
+│                  FastAPI Backend                        │
 │                                                          │
-│  ┌─── Routes (Blueprints) ───┐  ┌─── Services ────────┐ │
+│  ┌─── Routes (APIRouters) ───┐  ┌─── Services ────────┐ │
 │  │ auth.py     (OAuth)       │  │ splitwise_service.py │ │
 │  │ expenses.py (CRUD)        │  │ expense_service.py   │ │
 │  │ analytics.py (Charts/ML)  │  │ ml_service.py        │ │
@@ -88,7 +88,7 @@ The expense categorization model uses a **TF-IDF vectorizer** paired with a **Ra
 |----------|-----------|
 | **App Factory Pattern** | Enables testing with different configs, avoids circular imports |
 | **Service Layer** | Separates business logic from routes for testability |
-| **Blueprint Routing** | Modular route organization, each domain in its own file |
+| **APIRouter Routing** | Modular route organization, auto Swagger docs (`/docs`), each domain in its own file |
 | **Model Persistence** | Avoids retraining on every request (joblib serialization) |
 | **Centralized DB** | Single MongoDB connection pool instead of per-file clients |
 | **Structured Logging** | Replaces print() with leveled, timestamped log output |
@@ -100,7 +100,7 @@ The expense categorization model uses a **TF-IDF vectorizer** paired with a **Ra
 | Layer | Technology |
 |-------|------------|
 | **Frontend** | React 18, React Router v6, Chart.js, Axios |
-| **Backend** | Flask 3.0, Flask-CORS, Flask Blueprints |
+| **Backend** | FastAPI, Uvicorn, Pydantic, CORS Middleware |
 | **ML/NLP** | scikit-learn (TF-IDF, Random Forest, Pipeline), joblib |
 | **Database** | MongoDB (PyMongo) |
 | **Auth** | Splitwise OAuth 1.0 |
@@ -135,7 +135,7 @@ cp .env.example .env
 # Train the ML model and view metrics
 py -m ml.evaluate
 
-# Start the Flask server
+# Start the FastAPI server
 py run.py
 ```
 
@@ -146,7 +146,7 @@ cd budget_bliss
 # Install dependencies
 npm install
 
-# Start development server (proxies to Flask on port 5000)
+# Start development server (proxies to FastAPI on port 5000)
 npm start
 ```
 
@@ -162,12 +162,12 @@ py -m pytest tests/ -v
 
 ```
 BudgetBliss/
-├── backend/                    # Flask REST API
+├── backend/                    # FastAPI REST API
 │   ├── app/                    # Application package
 │   │   ├── __init__.py         # App factory
 │   │   ├── config.py           # Environment config
 │   │   ├── extensions.py       # MongoDB init
-│   │   ├── routes/             # API blueprints
+│   │   ├── routes/             # API routers
 │   │   ├── services/           # Business logic
 │   │   └── utils/              # Helpers & logging
 │   ├── ml/                     # ML artifacts

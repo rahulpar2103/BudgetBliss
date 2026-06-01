@@ -66,8 +66,14 @@ def clean_description(desc):
 
 def _get_model_paths(app_config=None):
     """Get paths for saved model artifacts."""
-    if app_config:
-        model_dir = app_config.get('MODEL_DIR', os.path.join('ml', 'saved_models'))
+    if app_config is None:
+        from app.config import settings
+        app_config = settings
+
+    if hasattr(app_config, 'MODEL_DIR'):
+        model_dir = app_config.MODEL_DIR
+    elif isinstance(app_config, dict):
+        model_dir = app_config.get('MODEL_DIR')
     else:
         model_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'ml', 'saved_models')
 
@@ -93,7 +99,7 @@ def train_and_evaluate(training_data_path=None, app_config=None):
 
     Args:
         training_data_path: Path to the training CSV file.
-        app_config: Flask app config dict (optional).
+        app_config: Configuration dict or object (optional).
 
     Returns:
         dict: Comprehensive metrics report.
@@ -102,8 +108,15 @@ def train_and_evaluate(training_data_path=None, app_config=None):
 
     # Resolve paths
     if training_data_path is None:
-        if app_config:
+        if app_config is None:
+            from app.config import settings
+            app_config = settings
+
+        if hasattr(app_config, 'TRAINING_DATA_PATH'):
+            training_data_path = app_config.TRAINING_DATA_PATH
+        elif isinstance(app_config, dict):
             training_data_path = app_config.get('TRAINING_DATA_PATH')
+
         if training_data_path is None:
             training_data_path = os.path.join(
                 os.path.dirname(os.path.dirname(__file__)),
