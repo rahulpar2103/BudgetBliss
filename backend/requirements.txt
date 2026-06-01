@@ -1,5 +1,24 @@
-flask
-splitwise
-pandas
-numpy
-scikit-learn
+# Core Framework
+flask>=3.0
+flask-cors>=5.0
+
+# Splitwise SDK
+splitwise>=3.0
+
+# Data Processing & ML
+pandas>=2.2
+numpy>=1.26
+scikit-learn>=1.5
+joblib>=1.4
+
+# Database
+pymongo>=4.9
+
+# Visualization
+matplotlib>=3.9
+
+# Configuration
+python-dotenv>=1.0
+
+# Testing
+pytest>=8.2

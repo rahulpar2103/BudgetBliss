@@ -1,0 +1,62 @@
+# Secrets and Configurations
+config.py
+**/config.py
+.env
+.env.*
+*.env
+
+# Python Cache & Builds
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+*.egg
+.pytest_cache/
+**/.pytest_cache/
+
+# Virtual Environments
+.venv/
+venv/
+env/
+**/venv/
+**/env/
+
+# ML Artifacts & Saved Models
+backend/ml/saved_models/*.joblib
+backend/ml/saved_models/*.json
+
+# Node Dependencies & Frontend Builds
+node_modules/
+**/node_modules/
+budget_bliss/build/
+
+# IDE & OS Files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs & Documentation Artifacts
+*.log
+*.pdf
+*.mermaid
+Budget Bliss Description.txt
+implementation_plan.md
+task.md
+walkthrough.md
+
+# Data Files (Ignore all CSV files except the model training dataset)
+*.csv
+**/expense_sums.csv
+**/expenses.csv
+**/friends.csv
+**/groups.csv
+**/prediction.csv
+!backend/ml/training_data/training-data.csv

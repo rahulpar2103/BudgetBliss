@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
-import './Styles/Profile.css'; // You'll need to create this CSS file
+import './Styles/Profile.css';
 
 function Profile() {
   const [userInfo, setUserInfo] = useState(null);
+  const [userStats, setUserStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -20,10 +21,17 @@ function Profile() {
     }
 
     try {
-      const response = await axios.get('/api/user_info', {
-        headers: { Authorization: `Bearer ${accessToken}` }
-      });
-      setUserInfo(response.data);
+      const [userResponse, statsResponse] = await Promise.all([
+        axios.get('/api/user_info', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        }),
+        axios.get('/api/user_stats', {
+          headers: { Authorization: `Bearer ${accessToken}` }
+        }).catch(() => ({ data: null })) // Graceful fallback if stats endpoint not available
+      ]);
+
+      setUserInfo(userResponse.data);
+      setUserStats(statsResponse.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching user info:', error);
@@ -35,6 +43,15 @@ function Profile() {
   const handleLogout = () => {
     localStorage.removeItem('access_token');
     window.location.href = '/';
+  };
+
+  const formatINR = (amount) => {
+    if (amount === null || amount === undefined || isNaN(amount)) return '₹0.00';
+    return new Intl.NumberFormat('en-IN', {
+      style: 'currency',
+      currency: 'INR',
+      minimumFractionDigits: 2,
+    }).format(amount);
   };
 
   if (loading) return <div className="profile-loading">Loading...</div>;
@@ -65,16 +82,22 @@ function Profile() {
       </div>
       <div className="profile-stats">
         <h3>Your Splitwise Stats</h3>
-        <p>Total Expenses: ₹X,XXX.XX</p>
-        <p>Groups: X</p>
-        <p>Friends: X</p>
-        {/* Add more stats as needed */}
+        {userStats ? (
+          <>
+            <p>Total Expenses: {formatINR(userStats.total_amount)}</p>
+            <p>Expense Count: {userStats.total_expenses}</p>
+            <p>Groups: {userStats.groups_count}</p>
+            <p>Friends: {userStats.friends_count}</p>
+            <p>Top Category: {userStats.top_category}</p>
+          </>
+        ) : (
+          <p>Stats will appear after syncing your data from the Dashboard.</p>
+        )}
       </div>
       <div className="profile-settings">
         <h3>Settings</h3>
         <p>Currency Preference: INR</p>
         <p>Notification Preferences: Email, Push</p>
-        {/* Add more settings or make these editable */}
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import axios from 'axios';
 import { Link } from 'react-router-dom';
 import './Styles/Expenses.css';
@@ -62,15 +62,17 @@ function Expenses() {
     }
   };
 
-  const filteredExpenses = expenses.filter(expense => 
-    filter === 'all' || expense.category.toLowerCase() === filter
-  );
-
-  const sortedExpenses = filteredExpenses.sort((a, b) => {
-    if (sort === 'date') return new Date(b.date) - new Date(a.date);
-    if (sort === 'amount') return b.amount - a.amount;
-    return 0;
-  });
+  // Memoize derived data to avoid mutating state during render
+  const sortedExpenses = useMemo(() => {
+    const filtered = expenses.filter(expense => 
+      filter === 'all' || expense.category.toLowerCase() === filter
+    );
+    return [...filtered].sort((a, b) => {
+      if (sort === 'date') return new Date(b.date) - new Date(a.date);
+      if (sort === 'amount') return b.amount - a.amount;
+      return 0;
+    });
+  }, [expenses, filter, sort]);
 
   const indexOfLastExpense = currentPage * expensesPerPage;
   const indexOfFirstExpense = indexOfLastExpense - expensesPerPage;

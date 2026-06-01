@@ -1,3 +1,19 @@
+# Secrets & config
 config.py
-*.csv
 .env
+
+# Python
+__pycache__/
+*.py[cod]
+venv/
+
+# Data files (keep training data via ml/training_data/)
+*.csv
+!ml/training_data/*.csv
+
+# ML saved models (regenerated via `py -m ml.evaluate`)
+ml/saved_models/*.joblib
+ml/saved_models/*.json
+
+# Logs
+*.log
