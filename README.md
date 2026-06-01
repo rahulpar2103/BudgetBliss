@@ -12,12 +12,12 @@ An ML-powered expense management platform that integrates with **Splitwise** to 
 
 ## ✨ Key Features
 
-- **Splitwise OAuth Integration** — Secure login via Splitwise OAuth 1.0 to sync expense data
-- **ML Expense Categorization** — Auto-classifies expenses into 6 categories using TF-IDF + Random Forest
-- **Real-Time Dashboard** — Summary statistics, expense tables, and category breakdowns
-- **Visual Analytics** — Interactive bar charts and pie charts via Chart.js
-- **Expense Management** — Add, filter, sort, and paginate expenses with category predictions
-- **Model Metrics API** — Exposes accuracy, F1-score, and cross-validation results via REST endpoint
+- **Splitwise OAuth Integration** : Secure login via Splitwise OAuth 1.0 to sync expense data
+- **ML Expense Categorization** : Auto-classifies expenses into 6 categories using TF-IDF + Random Forest
+- **Real-Time Dashboard** : Summary statistics, expense tables, and category breakdowns
+- **Visual Analytics** : Interactive bar charts and pie charts via Chart.js
+- **Expense Management** : Add, filter, sort, and paginate expenses with category predictions
+- **Model Metrics API** : Exposes accuracy, F1-score, and cross-validation results via REST endpoint
 
 ---
 
